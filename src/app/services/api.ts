@@ -297,12 +297,93 @@ export const mockData = {
   },
 };
 
+type DashboardPayload = (typeof mockData)['dashboard'];
+
+/** Merge API payload with mock defaults so the UI never sees undefined metrics/series. */
+function normalizeDashboardPayload(raw: unknown): DashboardPayload {
+  const base = mockData.dashboard;
+  if (!raw || typeof raw !== 'object') {
+    return base;
+  }
+  const r = raw as Partial<DashboardPayload>;
+  return {
+    ...base,
+    ...r,
+    metrics: { ...base.metrics, ...(r.metrics ?? {}) },
+    leadsOverTime: Array.isArray(r.leadsOverTime) ? r.leadsOverTime : base.leadsOverTime,
+    revenueByCampaign: Array.isArray(r.revenueByCampaign) ? r.revenueByCampaign : base.revenueByCampaign,
+    channelPerformance: Array.isArray(r.channelPerformance) ? r.channelPerformance : base.channelPerformance,
+    conversionFunnel: Array.isArray(r.conversionFunnel) ? r.conversionFunnel : base.conversionFunnel,
+  };
+}
+
+type TasksPayload = (typeof mockData)['tasks'];
+
+/** Ensure pending / inProgress / completed arrays exist (API may return 200 with partial payload). */
+function normalizeTasksPayload(raw: unknown): TasksPayload {
+  const base = mockData.tasks;
+  if (!raw || typeof raw !== 'object') {
+    return base;
+  }
+  const r = raw as Partial<TasksPayload>;
+  return {
+    pending: Array.isArray(r.pending) ? r.pending : base.pending,
+    inProgress: Array.isArray(r.inProgress) ? r.inProgress : base.inProgress,
+    completed: Array.isArray(r.completed) ? r.completed : base.completed,
+  };
+}
+
+type CampaignsList = (typeof mockData)['campaigns'];
+
+function normalizeCampaignsList(raw: unknown): CampaignsList {
+  return Array.isArray(raw) ? (raw as CampaignsList) : mockData.campaigns;
+}
+
+type ClientsList = (typeof mockData)['clients'];
+
+function normalizeClientsList(raw: unknown): ClientsList {
+  return Array.isArray(raw) ? (raw as ClientsList) : mockData.clients;
+}
+
+type AdsPayload = (typeof mockData)['ads'];
+
+function normalizeAdsPayload(raw: unknown): AdsPayload {
+  const base = mockData.ads;
+  if (!raw || typeof raw !== 'object') {
+    return base;
+  }
+  const r = raw as Partial<AdsPayload>;
+  return {
+    ...base,
+    ...r,
+    metrics: { ...base.metrics, ...(r.metrics ?? {}) },
+    ctrTrend: Array.isArray(r.ctrTrend) ? r.ctrTrend : base.ctrTrend,
+    cpcTrend: Array.isArray(r.cpcTrend) ? r.cpcTrend : base.cpcTrend,
+    conversionsByCampaign: Array.isArray(r.conversionsByCampaign)
+      ? r.conversionsByCampaign
+      : base.conversionsByCampaign,
+  };
+}
+
+type LeadsPayload = (typeof mockData)['leads'];
+
+function normalizeLeadsPayload(raw: unknown): LeadsPayload {
+  const base = mockData.leads;
+  if (!raw || typeof raw !== 'object') {
+    return base;
+  }
+  const r = raw as Partial<LeadsPayload>;
+  return {
+    funnel: Array.isArray(r.funnel) ? r.funnel : base.funnel,
+  };
+}
+
 // API service functions with mock data fallback
 export const apiService = {
   getDashboard: async () => {
     try {
       const response = await api.get('/dashboard');
-      return response.data;
+      return normalizeDashboardPayload(response.data);
     } catch (error) {
       console.warn('API unavailable, using mock data');
       return mockData.dashboard;
@@ -312,7 +393,7 @@ export const apiService = {
   getCampaigns: async () => {
     try {
       const response = await api.get('/campaigns');
-      return response.data;
+      return normalizeCampaignsList(response.data);
     } catch (error) {
       console.warn('API unavailable, using mock data');
       return mockData.campaigns;
@@ -322,7 +403,7 @@ export const apiService = {
   getClients: async () => {
     try {
       const response = await api.get('/clients');
-      return response.data;
+      return normalizeClientsList(response.data);
     } catch (error) {
       console.warn('API unavailable, using mock data');
       return mockData.clients;
@@ -332,7 +413,7 @@ export const apiService = {
   getAds: async () => {
     try {
       const response = await api.get('/ads');
-      return response.data;
+      return normalizeAdsPayload(response.data);
     } catch (error) {
       console.warn('API unavailable, using mock data');
       return mockData.ads;
@@ -342,7 +423,7 @@ export const apiService = {
   getLeads: async () => {
     try {
       const response = await api.get('/leads');
-      return response.data;
+      return normalizeLeadsPayload(response.data);
     } catch (error) {
       console.warn('API unavailable, using mock data');
       return mockData.leads;
@@ -352,7 +433,7 @@ export const apiService = {
   getTasks: async () => {
     try {
       const response = await api.get('/tasks');
-      return response.data;
+      return normalizeTasksPayload(response.data);
     } catch (error) {
       console.warn('API unavailable, using mock data');
       return mockData.tasks;
@@ -362,7 +443,7 @@ export const apiService = {
   getPerformance: async () => {
     try {
       const response = await api.get('/performance');
-      return response.data;
+      return normalizeDashboardPayload(response.data);
     } catch (error) {
       console.warn('API unavailable, using mock data');
       return mockData.dashboard;

@@ -6,7 +6,6 @@ import com.ratelimiter.repository.RequestLogRepository;
 import com.ratelimiter.repository.UserRepository;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Bucket4j;
 import io.github.bucket4j.Refill;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
@@ -35,6 +34,11 @@ public class RateLimiterService {
         User user;
     }
 
+    /** Auth-only check (no token consumed). Used for read-only observability routes. */
+    public Optional<User> findUserByApiKey(String apiKey) {
+        return userRepository.findByApiKey(apiKey);
+    }
+
     public RateLimitResult processRequest(String apiKey, String endpoint) {
         Optional<User> userOpt = userRepository.findByApiKey(apiKey);
         if (userOpt.isEmpty()) {
@@ -58,7 +62,7 @@ public class RateLimiterService {
     private Bucket createBucketForUser(User user) {
         int capacityPerMinute = Optional.ofNullable(user.getMaxRequestsPerMinute()).orElse(60);
         Bandwidth limit = Bandwidth.classic(capacityPerMinute, Refill.greedy(capacityPerMinute, Duration.ofMinutes(1)));
-        return Bucket4j.builder()
+        return Bucket.builder()
                 .addLimit(limit)
                 .build();
     }

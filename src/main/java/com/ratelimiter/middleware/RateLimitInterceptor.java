@@ -34,6 +34,15 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             return false;
         }
 
+        // Observability: do not consume rate-limit tokens (still require a valid API key)
+        if (isRateLimitExempt(path, request.getMethod())) {
+            if (rateLimiterService.findUserByApiKey(apiKey).isEmpty()) {
+                response.sendError(HttpStatus.UNAUTHORIZED.value(), "Invalid API key");
+                return false;
+            }
+            return true;
+        }
+
         RateLimiterService.RateLimitResult result = rateLimiterService.processRequest(apiKey, path);
         if (!result.isAllowed()) {
             if (result.getUser() == null) {
@@ -45,6 +54,13 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         }
 
         return true;
+    }
+
+    private static boolean isRateLimitExempt(String path, String method) {
+        if (!"GET".equalsIgnoreCase(method)) {
+            return false;
+        }
+        return "/api/analytics".equals(path) || "/api/logs".equals(path);
     }
 }
 
